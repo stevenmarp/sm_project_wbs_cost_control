@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_sm_project_wbs_list" model="ir.ui.view">
+        <field name="name">sm.project.wbs.list</field>
+        <field name="model">sm.project.wbs</field>
+        <field name="arch" type="xml">
+            <list string="WBS Cost Control" default_order="project_id, parent_path, sequence">
+                <field name="sequence" widget="handle"/>
+                <field name="code"/>
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="parent_id"/>
+                <field name="task_id"/>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-warning="state == 'in_progress'" decoration-success="state == 'done'"/>
+                <field name="progress" widget="progressbar"/>
+                <field name="planned_cost" sum="Planned"/>
+                <field name="committed_cost" sum="Committed"/>
+                <field name="actual_cost" sum="Actual"/>
+                <field name="variance_cost" sum="Variance" decoration-danger="variance_cost &lt; 0" decoration-success="variance_cost &gt;= 0"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_sm_project_wbs_form" model="ir.ui.view">
+        <field name="name">sm.project.wbs.form</field>
+        <field name="model">sm.project.wbs</field>
+        <field name="arch" type="xml">
+            <form string="WBS Cost Control">
+                <header>
+                    <button name="action_approve" type="object" string="Approve" class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_start" type="object" string="Start" class="btn-primary" invisible="state not in ('approved', 'draft')"/>
+                    <button name="action_done" type="object" string="Done" class="btn-primary" invisible="state != 'in_progress'"/>
+                    <button name="action_cancel" type="object" string="Cancel" invisible="state in ('done', 'cancelled')"/>
+                    <button name="action_reset_draft" type="object" string="Reset to Draft" invisible="state == 'draft'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,approved,in_progress,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_purchase_lines" type="object" class="oe_stat_button" icon="fa-shopping-cart">
+                            <field name="purchase_line_count" widget="statinfo" string="PO Lines"/>
+                        </button>
+                        <button name="action_open_analytic_lines" type="object" class="oe_stat_button" icon="fa-line-chart">
+                            <field name="analytic_line_count" widget="statinfo" string="Actual Lines"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Over Budget" bg_color="text-bg-danger" invisible="variance_cost &gt;= 0"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="WBS Item"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="code" readonly="1"/>
+                            <field name="project_id"/>
+                            <field name="parent_id"/>
+                            <field name="task_id"/>
+                            <field name="manager_id"/>
+                        </group>
+                        <group>
+                            <field name="date_start"/>
+                            <field name="date_end"/>
+                            <field name="progress" widget="progressbar"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <group string="Cost Control" col="4">
+                        <field name="planned_revenue"/>
+                        <field name="planned_cost"/>
+                        <field name="committed_cost"/>
+                        <field name="actual_cost"/>
+                        <field name="remaining_cost"/>
+                        <field name="variance_cost"/>
+                        <field name="planned_margin"/>
+                        <field name="margin_amount"/>
+                        <field name="cost_performance" widget="percentage"/>
+                    </group>
+                    <notebook>
+                        <page string="Budget Lines">
+                            <field name="cost_line_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="cost_type"/>
+                                    <field name="product_id"/>
+                                    <field name="name"/>
+                                    <field name="quantity"/>
+                                    <field name="uom_id"/>
+                                    <field name="unit_cost"/>
+                                    <field name="subtotal" sum="Total"/>
+                                </list>
+                            </field>
+                            <group>
+                                <field name="direct_planned_cost"/>
+                            </group>
+                        </page>
+                        <page string="Child WBS">
+                            <field name="child_ids" context="{'default_project_id': project_id, 'default_parent_id': id}">
+                                <list>
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="code"/>
+                                    <field name="name"/>
+                                    <field name="state"/>
+                                    <field name="progress" widget="progressbar"/>
+                                    <field name="planned_cost"/>
+                                    <field name="actual_cost"/>
+                                    <field name="variance_cost"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Dependencies">
+                            <field name="depending_wbs_ids" context="{'default_wbs_id': id}">
+                                <list editable="bottom">
+                                    <field name="depending_wbs_id"/>
+                                    <field name="relation_type"/>
+                                    <field name="state"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notes">
+                            <field name="note"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_sm_project_wbs_search" model="ir.ui.view">
+        <field name="name">sm.project.wbs.search</field>
+        <field name="model">sm.project.wbs</field>
+        <field name="arch" type="xml">
+            <search string="WBS Cost Control">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="project_id"/>
+                <field name="parent_id"/>
+                <field name="task_id"/>
+                <filter string="Over Budget" name="over_budget" domain="[('variance_cost', '&lt;', 0)]"/>
+                <filter string="In Progress" name="in_progress" domain="[('state', '=', 'in_progress')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Project" name="project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Parent WBS" name="parent_id" context="{'group_by': 'parent_id'}"/>
+                    <filter string="Status" name="state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_sm_project_wbs_pivot" model="ir.ui.view">
+        <field name="name">sm.project.wbs.pivot</field>
+        <field name="model">sm.project.wbs</field>
+        <field name="arch" type="xml">
+            <pivot string="WBS Cost Analysis">
+                <field name="project_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="planned_cost" type="measure"/>
+                <field name="actual_cost" type="measure"/>
+                <field name="committed_cost" type="measure"/>
+                <field name="variance_cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_sm_project_wbs_graph" model="ir.ui.view">
+        <field name="name">sm.project.wbs.graph</field>
+        <field name="model">sm.project.wbs</field>
+        <field name="arch" type="xml">
+            <graph string="WBS Cost Analysis" type="bar">
+                <field name="project_id"/>
+                <field name="planned_cost" type="measure"/>
+                <field name="actual_cost" type="measure"/>
+                <field name="committed_cost" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_sm_project_wbs_sm_gantt" model="ir.ui.view">
+        <field name="name">sm.project.wbs.sm.gantt</field>
+        <field name="model">sm.project.wbs</field>
+        <field name="priority">20</field>
+        <field name="type">sm_gantt</field>
+        <field name="arch" type="xml">
+            <sm_gantt
+                id_field="id"
+                text="name"
+                date_start="sm_gantt_start"
+                duration="sm_gantt_duration"
+                progress="progress"
+                open="sm_gantt_open"
+                links_serialized_json="sm_gantt_links_serialized_json"
+                link_model="sm.project.wbs.dependency"
+                link_source_field="wbs_id"
+                link_target_field="depending_wbs_id"
+                link_type_field="relation_type"
+            />
+        </field>
+    </record>
+
+    <record id="action_sm_project_wbs" model="ir.actions.act_window">
+        <field name="name">WBS Cost Control</field>
+        <field name="res_model">sm.project.wbs</field>
+        <field name="view_mode">list,form,pivot,graph,sm_gantt</field>
+        <field name="search_view_id" ref="view_sm_project_wbs_search"/>
+    </record>
+
+    <record id="action_sm_project_wbs_sm_gantt_view" model="ir.actions.act_window.view">
+        <field name="sequence" eval="50"/>
+        <field name="view_mode">sm_gantt</field>
+        <field name="view_id" ref="view_sm_project_wbs_sm_gantt"/>
+        <field name="act_window_id" ref="action_sm_project_wbs"/>
+    </record>
+
+    <menuitem id="menu_sm_project_wbs" name="WBS Cost Control" parent="project.menu_project_management" action="action_sm_project_wbs" sequence="35"/>
+</odoo>
