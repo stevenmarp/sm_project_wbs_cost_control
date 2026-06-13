@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_sm_project_wbs_user,sm.project.wbs user,model_sm_project_wbs,project.group_project_user,1,1,1,0
+access_sm_project_wbs_manager,sm.project.wbs manager,model_sm_project_wbs,sm_project_wbs_cost_control.group_sm_project_wbs_manager,1,1,1,1
+access_sm_project_wbs_cost_line_user,sm.project.wbs.cost.line user,model_sm_project_wbs_cost_line,project.group_project_user,1,1,1,0
+access_sm_project_wbs_cost_line_manager,sm.project.wbs.cost.line manager,model_sm_project_wbs_cost_line,sm_project_wbs_cost_control.group_sm_project_wbs_manager,1,1,1,1
+access_sm_project_wbs_dependency_user,sm.project.wbs.dependency user,model_sm_project_wbs_dependency,project.group_project_user,1,1,1,0
+access_sm_project_wbs_dependency_manager,sm.project.wbs.dependency manager,model_sm_project_wbs_dependency,sm_project_wbs_cost_control.group_sm_project_wbs_manager,1,1,1,1

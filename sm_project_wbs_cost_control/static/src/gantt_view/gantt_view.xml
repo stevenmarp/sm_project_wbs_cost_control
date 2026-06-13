@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="sm_project_wbs_cost_control.GanttView">
+        <div t-att-class="props.className" t-ref="root">
+            <Layout className="'d-flex'" display="props.display">
+                <t t-set-slot="control-panel-additional-actions">
+                    <CogMenu/>
+                </t>
+                <t t-set-slot="layout-actions">
+                    <SearchBar toggler="searchBarToggler"/>
+                </t>
+                <t t-set-slot="control-panel-navigation-additional">
+                    <t t-component="searchBarToggler.component" t-props="searchBarToggler.props"/>
+                </t>
+                <t t-set-slot="default" t-slot-scope="layout">
+                    <t t-component="props.Renderer" model="model" archInfo="props.archInfo" onRowOpen.bind="onRowOpen"/>
+                </t>
+            </Layout>
+        </div>
+    </t>
+
+    <t t-name="sm_project_wbs_cost_control.GanttRenderer">
+        <t t-set="rows" t-value="getRows()"/>
+        <t t-set="timeline" t-value="getTimeline()"/>
+        <div class="o_sm_wbs_gantt_root" t-att-class="state.fullscreen ? 'o_sm_wbs_gantt_fullscreen' : ''">
+            <div class="o_sm_wbs_gantt_toolbar">
+                <div class="o_sm_wbs_gantt_toolbar_left">
+                    <div class="btn-group">
+                        <t t-foreach="getScaleButtons()" t-as="scale" t-key="scale.name">
+                            <button type="button"
+                                    t-att-class="'btn btn-sm ' + (state.currentScale === scale.name ? 'btn-primary' : 'btn-light')"
+                                    t-on-click="() => this.onScaleChange(scale.name)">
+                                <t t-esc="scale.label"/>
+                            </button>
+                        </t>
+                    </div>
+                </div>
+                <div class="o_sm_wbs_gantt_toolbar_right">
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fa fa-sort-amount-asc me-1"/>Sort
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" t-on-click="() => this.onSort('date_asc')">Date Old-New</a></li>
+                            <li><a class="dropdown-item" t-on-click="() => this.onSort('date_desc')">Date New-Old</a></li>
+                            <li><a class="dropdown-item" t-on-click="() => this.onSort('name_asc')">Name A-Z</a></li>
+                            <li><a class="dropdown-item" t-on-click="() => this.onSort('name_desc')">Name Z-A</a></li>
+                            <li><a class="dropdown-item" t-on-click="() => this.onSort('progress_desc')">Progress High-Low</a></li>
+                            <li><a class="dropdown-item" t-on-click="() => this.onSort('progress_asc')">Progress Low-High</a></li>
+                        </ul>
+                    </div>
+                    <button type="button" t-att-class="'btn btn-sm ' + (state.showGrid ? 'btn-primary' : 'btn-light')" t-on-click="onToggleGrid" title="Toggle Grid">
+                        <i class="fa fa-columns"/>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-light" t-on-click="onExportCSV" title="Export CSV">
+                        <i class="fa fa-download"/>
+                    </button>
+                    <button type="button" t-att-class="'btn btn-sm ' + (state.fullscreen ? 'btn-primary' : 'btn-light')" t-on-click="onToggleFullscreen" title="Fullscreen">
+                        <i t-att-class="state.fullscreen ? 'fa fa-compress' : 'fa fa-expand'"/>
+                    </button>
+                </div>
+            </div>
+            <t t-if="rows.length">
+                <div class="o_sm_wbs_gantt_board" t-att-class="state.showGrid ? '' : 'o_sm_wbs_gantt_no_grid'">
+                    <div class="o_sm_wbs_gantt_grid_header">WBS Item</div>
+                    <div class="o_sm_wbs_gantt_timeline_header" t-att-style="getTimelineGridStyle(timeline)">
+                        <t t-foreach="timeline.cells" t-as="cell" t-key="cell.key">
+                            <div class="o_sm_wbs_gantt_cell_header"><t t-esc="cell.label"/></div>
+                        </t>
+                    </div>
+                    <t t-foreach="rows" t-as="row" t-key="row.key">
+                        <div t-att-class="'o_sm_wbs_gantt_grid_row ' + (row.isProject ? 'o_sm_wbs_gantt_project_row' : '')" t-on-dblclick="() => this.onRowOpen(row)">
+                            <div class="o_sm_wbs_gantt_row_title">
+                                <i t-att-class="row.isProject ? 'fa fa-folder-o me-2' : 'fa fa-tasks me-2'"/>
+                                <span t-esc="row.text"/>
+                            </div>
+                            <div class="o_sm_wbs_gantt_row_meta" t-if="!row.isProject">
+                                <span><t t-esc="Math.round(row.progress || 0)"/>%</span>
+                                <span t-att-class="row.varianceCost &lt; 0 ? 'text-danger' : 'text-success'">Var <t t-esc="getMoney(row.varianceCost)"/></span>
+                            </div>
+                        </div>
+                        <div t-att-class="'o_sm_wbs_gantt_timeline_row ' + (row.isProject ? 'o_sm_wbs_gantt_project_timeline' : '')" t-att-style="getTimelineGridStyle(timeline)" t-on-dblclick="() => this.onRowOpen(row)">
+                            <t t-foreach="timeline.cells" t-as="cell" t-key="cell.key">
+                                <div class="o_sm_wbs_gantt_cell"/>
+                            </t>
+                            <t t-if="!row.isProject">
+                                <div class="o_sm_wbs_gantt_bar" t-att-style="getBarStyle(row, timeline)" t-att-title="getBarTitle(row)">
+                                    <div class="o_sm_wbs_gantt_bar_progress" t-att-style="getProgressStyle(row)"/>
+                                    <span><t t-esc="row.text"/></span>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+                    <svg class="o_sm_wbs_gantt_links" t-att-style="'left:' + (state.showGrid ? '320px' : '0') + ';width:' + timeline.width + 'px;height:' + getLinksHeight(rows) + 'px;'">
+                        <defs>
+                            <marker id="sm_wbs_gantt_arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+                                <path d="M0,0 L0,6 L6,3 z"/>
+                            </marker>
+                        </defs>
+                        <t t-foreach="getLinkPaths(rows, timeline)" t-as="path" t-key="path.key">
+                            <path t-att-d="path.d"/>
+                        </t>
+                    </svg>
+                </div>
+            </t>
+            <t t-else="">
+                <div class="o_sm_wbs_gantt_empty">
+                    <i class="fa fa-tasks"/>
+                    <span>No WBS items found</span>
+                </div>
+            </t>
+        </div>
+    </t>
+</templates>
